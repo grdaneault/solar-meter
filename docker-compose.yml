@@ -2,7 +2,7 @@ version: '3'
 services:
   influxdb:
     image: "influxdb:latest"
-    name: influxdb
+    container_name: influxdb
     volumes:
       # Mount for influxdb data directory
       - ./influxdb/data:/var/lib/influxdb
@@ -14,11 +14,22 @@ services:
       - "8082:8082"
       # UDP Port
       - "8089:8089"
+
   chronograf:
     image: "chronograf:latest"
-    name: chronograf
+    container_name: chronograf
     volumes:
       - ./chronograf:/var/lib/chronograf
     ports:
       - "8888:8888"
 
+  mosquitto:
+    image: "eclipse-mosquitto:latest"
+    container_name: mosquitto
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    ports:
+      - "1883:1883"
+      - "9001:9001"
