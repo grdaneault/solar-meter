@@ -35,4 +35,7 @@ record_data('wattHours', inverterStats['wNow'], type='inverters', read_time=read
 record_data('activePanels', inverterStats['activeCount'], type='inverters', read_time=read_time)
 record_data('totalGeneration', inverterStats['whLifetime'], type='inverters', read_time=read_time)
 
-record_data()
+eimStats = d['production'][1]
+read_time = datetime.fromtimestamp(eimStats['readingTime'])
+record_data('wattHours', eimStats['wNow'], type='eim', read_time=read_time)
+record_data('wattHours', eimStats['whLifetime'], type='eim', read_time=read_time)
