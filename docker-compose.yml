@@ -1,0 +1,24 @@
+version: '3'
+services:
+  influxdb:
+    image: "influxdb:latest"
+    name: influxdb
+    volumes:
+      # Mount for influxdb data directory
+      - ./influxdb/data:/var/lib/influxdb
+      # Mount for influxdb configuration
+      - ./influxdb/config/:/etc/influxdb/
+    ports:
+      # The API for InfluxDB is served on port 8086
+      - "8086:8086"
+      - "8082:8082"
+      # UDP Port
+      - "8089:8089"
+  chronograf:
+    image: "chronograf:latest"
+    name: chronograf
+    volumes:
+      - ./chronograf:/var/lib/chronograf
+    ports:
+      - "8888:8888"
+
