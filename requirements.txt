@@ -1,2 +1,3 @@
 influx-client
 requests
+paho-mqtt

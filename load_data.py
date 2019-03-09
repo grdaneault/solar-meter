@@ -1,4 +1,6 @@
 from influx import InfluxDB
+import paho.mqtt.client as mqtt
+
 import requests
 from datetime import datetime
 import time
@@ -10,17 +12,19 @@ INFLUX_DATABASE = 'solar'
 # This creates the client instance... subsequent calls with the same URL will
 # return the exact same instance, allowing you to use socket pooling for faster
 # requests with less resources.
-client = InfluxDB('http://%s:%s' % (INFLUX_HOST, INFLUX_PORT))
+influx_client = InfluxDB('http://%s:%s' % (INFLUX_HOST, INFLUX_PORT))
 
-# You can write as many fields and tags as you like, or override the *time* for
-# the data points
+mqtt_client = mqtt.Client()
+mqtt_client.connect("192.168.1.215", 1883, 60)
+mqtt_client.loop_start()
 
 
 def record_data(measurement, value, type, read_time):
-    client.write(INFLUX_DATABASE, measurement,
-                 fields={'value': value},
-                 tags={'type': type},
-                 time=read_time)
+    influx_client.write(INFLUX_DATABASE, measurement,
+                        fields={'value': value},
+                        tags={'type': type},
+                        time=read_time)
+    mqtt_client.publish('/solar/%s/%s' % (type, measurement), value)
 
 
 def get_solar_data():
@@ -49,5 +53,5 @@ def get_solar_data():
 if __name__ == '__main__':
     while True:
         get_solar_data()
-        time.sleep(60 * 5)
+        time.sleep(30)
 
