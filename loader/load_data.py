@@ -4,18 +4,24 @@ import paho.mqtt.client as mqtt
 import requests
 from datetime import datetime
 import time
+import os
 
-INFLUX_HOST = '192.168.1.215'
+INFLUX_HOST = os.getenv('INFLUX_HOST', '192.168.1.215')
 INFLUX_PORT = 8086
 INFLUX_DATABASE = 'solar'
+MQTT_HOST = os.getenv('MQTT_HOST', '192.168.1.215')
 
+print("Data Loader starting...")
 # This creates the client instance... subsequent calls with the same URL will
 # return the exact same instance, allowing you to use socket pooling for faster
 # requests with less resources.
 influx_client = InfluxDB('http://%s:%s' % (INFLUX_HOST, INFLUX_PORT))
+print("Connected to InfluxDB on " + INFLUX_HOST)
 
 mqtt_client = mqtt.Client()
-mqtt_client.connect("192.168.1.215", 1883, 60)
+mqtt_client.connect(MQTT_HOST, 1883, 60)
+print("Connected to MQTT on " + MQTT_HOST)
+
 mqtt_client.loop_start()
 
 
@@ -51,6 +57,7 @@ def get_solar_data():
 
 
 if __name__ == '__main__':
+    print("Ready to collect solar data!")
     while True:
         get_solar_data()
         time.sleep(30)

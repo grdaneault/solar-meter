@@ -22,6 +22,8 @@ services:
       - ./chronograf:/var/lib/chronograf
     ports:
       - "8888:8888"
+    depends_on:
+      - influxdb
 
   mosquitto:
     image: "eclipse-mosquitto:latest"
@@ -33,3 +35,14 @@ services:
     ports:
       - "1883:1883"
       - "9001:9001"
+
+  data_loader:
+    image: "data_loader:latest"
+    container_name: data_loader
+    build: ./loader
+    environment:
+      INFLUX_HOST: influxdb
+      MQTT_HOST: mosquitto
+    depends_on:
+      - influxdb
+      - mosquitto
