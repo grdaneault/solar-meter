@@ -12,6 +12,8 @@ if sys.argv[1] == 'sub':
         # reconnect then subscriptions will be renewed.
         # client.subscribe("$SYS/#")
         client.subscribe("/solar/eim/wattHours")
+        client.subscribe("/sensor/temp")
+        client.subscribe("/sensor/humidity")
 
 
     # The callback for when a PUBLISH message is received from the server.
@@ -40,5 +42,4 @@ elif sys.argv[1] == 'pub':
     i = 0
     while True:
         i += 1
-        client.publish("/solar/eim/wattHours", i)
-        time.sleep(2)
+        client.publish("/solar/eim/wattHours", float(input("Enter value: ")))
