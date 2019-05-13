@@ -19,10 +19,31 @@ influx_client = InfluxDB('http://%s:%s' % (INFLUX_HOST, INFLUX_PORT))
 print("Connected to InfluxDB on " + INFLUX_HOST)
 
 mqtt_client = mqtt.Client()
-mqtt_client.connect(MQTT_HOST, 1883, 60)
-print("Connected to MQTT on " + MQTT_HOST)
 
-mqtt_client.loop_start()
+def on_connect(client, userdata, flags, rc):
+    print("Connected to MQTT on %s. result code: %s" % (MQTT_HOST, rc))
+
+    # Subscribing in on_connect() means that if we lose the connection and
+    # reconnect then subscriptions will be renewed.
+    client.subscribe("/sensor/temp")
+    client.subscribe("/sensor/humidity")
+
+
+def on_message(client, userdata, msg):
+    val = float(msg.payload)
+    metric = None
+    if msg.topic == "/sensor/temp":
+        metric = "sensor.temp"
+    elif msg.topic == "/sensor/humidity":
+        metric = "sensor.humidity"
+    else:
+        return
+
+    print("received %s reading: %d" % (metric, val))
+
+    influx_client.write(INFLUX_DATABASE, metric,
+                        fields={'value': val},
+                        time=datetime.fromtimestamp(time.time()))
 
 
 def record_data(measurement, value, type, read_time):
@@ -58,7 +79,15 @@ def get_solar_data():
 
 if __name__ == '__main__':
     print("Ready to collect solar data!")
+    mqtt_client.on_message = on_message
+    mqtt_client.on_connect = on_connect
+
+    mqtt_client.connect(MQTT_HOST, 1883, 60)
+    mqtt_client.loop_start()
+
     while True:
         get_solar_data()
-        time.sleep(30)
+        mqtt_client.loop()
+        time.sleep(15)
+
 

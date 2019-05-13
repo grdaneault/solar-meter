@@ -18,7 +18,7 @@ class SolarMeter(object):
         self.led_pwm = machine.PWM(led_pin, freq=1000)
 
         self.curr_power = 0
-        self.max_power = 2000
+        self.max_power = 4500
 
         self.mqtt = None
         self.init_mqtt(mqtt_host)
