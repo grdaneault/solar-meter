@@ -1,27 +1,47 @@
 from influx import InfluxDB
 import paho.mqtt.client as mqtt
-
+import logging
 import requests
 from datetime import datetime
 import time
 import os
+
+logger = logging.getLogger('data_loader')
+logger.setLevel(logging.DEBUG)
+console_handler = logging.StreamHandler()
+# create formatter and add it to the handlers
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
 
 INFLUX_HOST = os.getenv('INFLUX_HOST', '192.168.1.215')
 INFLUX_PORT = 8086
 INFLUX_DATABASE = 'solar'
 MQTT_HOST = os.getenv('MQTT_HOST', '192.168.1.215')
 
-print("Data Loader starting...")
+logger.info("Data Loader starting...")
 # This creates the client instance... subsequent calls with the same URL will
 # return the exact same instance, allowing you to use socket pooling for faster
 # requests with less resources.
-influx_client = InfluxDB('http://%s:%s' % (INFLUX_HOST, INFLUX_PORT))
-print("Connected to InfluxDB on " + INFLUX_HOST)
 
+def make_influx_connection(url):
+    for i in range(20):
+        try:   
+            client = InfluxDB(url)
+            client.show_tags(database='solar', measurement='totalGeneration')
+            return client
+        except Exception as e:
+            logger.warning("Failed connecting to influxDB on " + url + " (attempt " + str(i + 1) + ")")
+            logger.warning("Exception details: " + str(e)) 
+            time.sleep(10)
+    raise ValueError("Aborting influx connection after 20 attempts")
+
+
+influx_client = make_influx_connection('http://%s:%s' % (INFLUX_HOST, INFLUX_PORT))
 mqtt_client = mqtt.Client()
 
 def on_connect(client, userdata, flags, rc):
-    print("Connected to MQTT on %s. result code: %s" % (MQTT_HOST, rc))
+    logger.info("Connected to MQTT on %s. result code: %s" % (MQTT_HOST, rc))
 
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
@@ -39,7 +59,7 @@ def on_message(client, userdata, msg):
     else:
         return
 
-    print("received %s reading: %d" % (metric, val))
+    logger.info("received %s reading: %d" % (metric, val))
 
     influx_client.write(INFLUX_DATABASE, metric,
                         fields={'value': val},
@@ -55,7 +75,7 @@ def record_data(measurement, value, type, read_time):
 
 
 def get_solar_data():
-    print('Fetching solar data... ', end='')
+    logger.debug('Fetching solar data... ')
     resp = requests.get('http://192.168.1.92/production.json?details=1')
     d = resp.json()
 
@@ -74,11 +94,10 @@ def get_solar_data():
     for metric in ['varhLeadLifetime', 'varhLagLifetime', 'vahLifetime', 'rmsCurrent', 'rmsVoltage', 'reactPwr', 'apprntPwr', 'pwrFactor', 'whToday', 'whLastSevenDays', 'vahToday', 'varhLeadToday', 'varhLagToday']:
         record_data(metric, eim_stats[metric], type='eim', read_time=read_time)
 
-    print('done.')
 
 
 if __name__ == '__main__':
-    print("Ready to collect solar data!")
+    logger.info("Ready to collect solar data!")
     mqtt_client.on_message = on_message
     mqtt_client.on_connect = on_connect
 
